@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>📋 Gerador #AjudaN2 - OD e Antifraude com textos fixos editáveis</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: #eef2f5;
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .app-container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            font-size: 13px;
+        }
+        .form-panel {
+            background: #ffffff;
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .result-panel {
+            background: #f8fafc;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .header {
+            background: #003366;
+            color: white;
+            padding: 12px 20px;
+            grid-column: span 2;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+        .header p {
+            margin: 2px 0 0;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        .row-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 16px;
+        }
+        .row-options .form-group {
+            margin-bottom: 0;
+            width: 100%;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #1e293b;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+        }
+        .radio-group label {
+            font-weight: normal;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        .campos-dinamicos {
+            background: #f9f9fc;
+            border-radius: 16px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #4b5563;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 12px;
+        }
+        button.primary {
+            background: #003366;
+        }
+        button.warning {
+            background: #f59e0b;
+        }
+        button.success {
+            background: #10b981;
+        }
+        button:hover {
+            filter: brightness(0.95);
+            transform: scale(1.01);
+        }
+        .result-area textarea {
+            width: 100%;
+            height: 420px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            background: white;
+            border-radius: 14px;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            resize: vertical;
+        }
+        .toast {
+            visibility: hidden;
+            min-width: 160px;
+            background-color: #1e293b;
+            color: white;
+            text-align: center;
+            border-radius: 40px;
+            padding: 6px 12px;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        @media (max-width: 900px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            .form-panel {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>📋 Gerador #AjudaN2 - Google Chat</h1>
+        <p>OD e Antifraude com textos padrão editáveis</p>
+    </div>
+
+    <div class="form-panel">
+        <div id="opcoesEspecificas" class="row-options"></div>
+        <div id="camposDinamicos" class="campos-dinamicos"></div>
+        <div class="button-group">
+            <button id="btnGerar" class="primary">📋 GERAR MENSAGEM</button>
+            <button id="btnLimpar" class="warning">🧹 LIMPAR CAMPOS</button>
+        </div>
+    </div>
+
+    <div class="result-panel">
+        <div class="result-area">
+            <label style="font-weight: bold;">Mensagem gerada (copie e cole):</label>
+            <textarea id="resultado" readonly placeholder="A mensagem aparecerá aqui. Use *texto* para negrito."></textarea>
+            <button id="btnCopiar" class="success" style="margin-top: 12px;">📋 COPIAR</button>
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast">✅ Copiado!</div>
+
+<script>
+    // ---------- PRODUTOS ----------
+    const produtos = {
+        ET: {
+            estados: ["PB", "PE", "MA"],
+            tiposErro: {
+                "CPF não encontrado": { situacao: "Candidato não está conseguindo iniciar o exame.", erro: "O CPF não encontrado na base de dados.", extras: ["pago_abonado","cfc"], admin_gestor: false },
+                "Prova não disponibilizada": { situacao: "Candidato não está conseguindo iniciar o exame. Candidato abonado.", erro: "O CPF consultado não tem prova disponibilizada para hoje.", extras: ["pago_abonado","cfc"], admin_gestor: false },
+                "Credenciais incorretas": { situacao: "Ao tentar abrir o exame, consta erro de credenciais. Já orientamos sobre iluminação e tentamos reabrir, sem sucesso. Verificar necessidade de nova biometria.", erro: "Credenciais incorretas", extras: ["cfc"], admin_gestor: false },
+                "Credenciais inválidas": { situacao: "Ao tentar abrir o exame, consta erro de credenciais. Já orientamos sobre iluminação e tentamos reabrir, sem sucesso. Verificar necessidade de nova biometria.", erro: "Credenciais inválidas", extras: ["cfc"], admin_gestor: false },
+                "Liberado admin/gestor": { situacao: "Por favor, poderiam verificar a possibilidade de lançar o resultado?", erro: null, extras: [], admin_gestor: true }
+            }
+        },
+        SuperAula: {
+            estados: ["CE","PE","PB","SE","RN","AL","MT","MA","SC"],
+            tipos: {
+                cancelamento: { label: "Cancelamento de boleto", situacaoPadrao: "Cancelamento de boleto. Gerar novo boleto.", campos: ["nome","renach","num_pagamento","cpf"] },
+                validade: { label: "Setar validade", situacaoPadrao: "Poderiam setar a validade dessa candidata? (aluno não possui processo teórico ativo)", campos: ["cpf","cnpj"] },
+                semface: { label: "Aluno sem face", situacaoPadrao: "Aluno não consegue entrar na aula, consta: Falha na validação, pessoa sem face cadastrada. No superpratico ele não possui face. Alguém poderia verificar?", campos: ["nome","cpf"] }
+            }
+        },
+        OD: {
+            estadoFixo: "PE",
+            tipos: {
+                erro_abertura: { label: "Erro na abertura do Renach", situacaoPadrao: "Não foi possível validar documento de identificação.\n\nErro: Não foi detectado um grau de semelhança confiável entre as biometrias faciais recebidas.\n\nComo proceder?" },
+                consulta: { label: "Consulta de situação", situacaoPadrao: "Poderiam verificar a situação do aluno?" }  // texto fixo editável
+            },
+            campos: ["cpf","data_nasc","cnpj"]
+        },
+        SP: {
+            estados: ["MA","PB","CE","SE","BA","RN","PE","AL"],
+            tipos: {
+                importacao: { label: "Erro na importação", situacaoPadrao: "Erro na importação, tentei pelo meu painel e deu o mesmo erro.", campos: ["cpf_renach","cnpj","erro"] },
+                reprocessamento: { label: "Reprocessamento de aula", situacaoPadrao: "Reprocessamento de aula para envio de curso.", campos: ["renach","aula","data_cadastro","oid"], estadosPermitidos: ["BA","RN"] },
+                reenvio: { label: "Reenvio de aula", situacaoPadrao: "Poderia reenviar essa(s) aula(s), não constam pendências aparentes.", campos: ["renach","aula","oid"] }
+            }
+        },
+        Antifraude: {
+            estados: ["MA","PB","CE","SE","BA","RN","PE","AL"],
+            campos: ["uf","numero_aula","nome_alerta","analise_suporte","numero_ticket"]
+        }
+    };
+
+    const alertasSugestoes = [
+        "Abertura/Fechamento da aula fora do cerco",
+        "Data inicial ou final incompatível com a data do servidor",
+        "Identificado possível ausência do capacete",
+        "Nenhuma imagem enviada",
+        "Fechamento da aula fora do cerco",
+        "Detectada parada superior a 10 minutos durante a execução da aula",
+        "Abertura da aula fora do cerco",
+        "Quilometragem mínima não atingida",
+        "Sem face",
+        "Validação facial inicial ou final capturada de forma imprecisa ou não identificada"
+    ];
+
+    const campoLabel = {
+        nome: "NOME", cpf: "CPF", cnpj: "CNPJ", renach: "RENACH", num_pagamento: "NÚMERO DE PAGAMENTO",
+        data_nasc: "DATA NASC.", cfc: "CFC", pago_abonado: "SITUAÇÃO", link: "LINK DO TICKET",
+        cpf_renach: "CPF / RENACH", aula: "AULA", data_cadastro: "DATA CADASTRO", oid: "OID", erro: "ERRO",
+        uf: "UF", numero_aula: "Nº DA AULA", renach_af: "RENACH", nome_alerta: "NOME DO ALERTA",
+        analise_suporte: "ANÁLISE DO SUPORTE", numero_ticket: "NÚMERO DO TICKET"
+    };
+
+    let currentTipo = "ET";
+    const divOpcoes = document.getElementById("opcoesEspecificas");
+    const divCampos = document.getElementById("camposDinamicos");
+    const btnGerar = document.getElementById("btnGerar");
+    const btnLimpar = document.getElementById("btnLimpar");
+    const btnCopiar = document.getElementById("btnCopiar");
+    const textResultado = document.getElementById("resultado");
+    const toast = document.getElementById("toast");
+
+    function showToast(msg) { toast.textContent = msg || "✅ Copiado!"; toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 1500); }
+
+    function limparCampos() {
+        const inputs = divCampos.querySelectorAll("input, textarea, select");
+        inputs.forEach(inp => {
+            if (inp.tagName === "SELECT") inp.selectedIndex = 0;
+            else if (inp.type !== "button") inp.value = "";
+        });
+        const pagoSelect = document.querySelector("select[name='pago_abonado']");
+        if(pagoSelect) pagoSelect.value = "";
+        showToast("🧹 Campos preenchidos foram limpos");
+    }
+
+    // Função addCampo com defaultValue
+    function addCampo(type, name, label, placeholder, readonly = false, options = null, datalistId = null, defaultValue = "") {
+        const div = document.createElement("div");
+        div.className = "form-group";
+        div.innerHTML = `<label>${label}:</label>`;
+        if (type === "textarea") {
+            const ta = document.createElement("textarea");
+            ta.name = name; ta.rows = 2; ta.placeholder = placeholder;
+            if (readonly) ta.readOnly = true;
+            ta.value = readonly ? placeholder : defaultValue;
+            div.appendChild(ta);
+        } else if (type === "select" && options) {
+            const sel = document.createElement("select");
+            sel.name = name;
+            options.forEach(opt => {
+                const option = document.createElement("option");
+                option.value = opt.value;
+                option.textContent = opt.text;
+                if (opt.selected) option.selected = true;
+                sel.appendChild(option);
+            });
+            div.appendChild(sel);
+        } else if (type === "text-with-datalist" && datalistId) {
+            const inp = document.createElement("input");
+            inp.type = "text"; inp.name = name; inp.placeholder = placeholder; inp.list = datalistId;
+            if (readonly) inp.readOnly = true;
+            inp.value = readonly ? placeholder : defaultValue;
+            div.appendChild(inp);
+        } else {
+            const inp = document.createElement("input");
+            inp.type = "text"; inp.name = name; inp.placeholder = placeholder;
+            if (readonly) inp.readOnly = true;
+            inp.value = readonly ? placeholder : defaultValue;
+            div.appendChild(inp);
+        }
+        divCampos.appendChild(div);
+    }
+
+    // ========== RENDERIZAÇÃO PRINCIPAL ==========
+    function renderizarPagina() {
+        const tipo = document.getElementById("produtoSelect")?.value || "ET";
+        currentTipo = tipo;
+        divOpcoes.innerHTML = "";
+        divCampos.innerHTML = "";
+
+        const prodDiv = document.createElement("div");
+        prodDiv.className = "form-group";
+        prodDiv.innerHTML = `<label>Produto:</label><select id="produtoSelect">${Object.keys(produtos).map(p => `<option value="${p}" ${p===tipo?'selected':''}>${p==='ET'?'Exame Teórico (ET)':p==='SuperAula'?'Aula Teórica (SuperAula)':p==='OD'?'Renach Digital (OD)':p==='SP'?'Super Prático (SP)':'Antifraude'}</option>`).join('')}</select>`;
+        divOpcoes.appendChild(prodDiv);
+        document.getElementById("produtoSelect").addEventListener("change", renderizarPagina);
+
+        if (tipo === "ET") {
+            const et = produtos.ET;
+            const estadoDiv = document.createElement("div"); estadoDiv.className = "form-group";
+            estadoDiv.innerHTML = `<label>Estado:</label><select id="estadoET">${et.estados.map(e=>`<option value="${e}">${e}</option>`).join('')}</select>`;
+            divOpcoes.appendChild(estadoDiv);
+            const tipoDiv = document.createElement("div"); tipoDiv.className = "form-group";
+            tipoDiv.innerHTML = `<label>Tipo erro:</label><select id="tipoErroET">${Object.keys(et.tiposErro).map(t=>`<option value="${t}">${t}</option>`).join('')}</select>`;
+            divOpcoes.appendChild(tipoDiv);
+            document.getElementById("estadoET")?.addEventListener("change", ()=>renderizarCamposET());
+            document.getElementById("tipoErroET")?.addEventListener("change", ()=>renderizarCamposET());
+            renderizarCamposET();
+        } 
+        else if (tipo === "SuperAula") {
+            const sa = produtos.SuperAula;
+            const estadoDiv = document.createElement("div"); estadoDiv.className = "form-group";
+            estadoDiv.innerHTML = `<label>Estado:</label><select id="estadoSA">${sa.estados.map(e=>`<option value="${e}">${e}</option>`).join('')}</select>`;
+            divOpcoes.appendChild(estadoDiv);
+            const tipoDiv = document.createElement("div"); tipoDiv.className = "form-group";
+            tipoDiv.innerHTML = `<label>Tipo:</label><div class="radio-group" id="radioTipoSA"></div>`;
+            divOpcoes.appendChild(tipoDiv);
+            const radioDiv = document.getElementById("radioTipoSA");
+            Object.keys(sa.tipos).forEach(k => { radioDiv.innerHTML += `<label><input type="radio" name="tipoSA" value="${k}" ${k==='cancelamento'?'checked':''}> ${sa.tipos[k].label}</label>`; });
+            document.querySelectorAll("input[name='tipoSA']").forEach(r=>r.addEventListener("change",()=>renderizarCamposSA()));
+            renderizarCamposSA();
+        }
+        else if (tipo === "OD") {
+            const od = produtos.OD;
+            const estadoDiv = document.createElement("div"); estadoDiv.className = "form-group";
+            estadoDiv.innerHTML = `<label>Estado:</label><input type="text" value="PE (fixo)" readonly style="background:#eef2fa;">`;
+            divOpcoes.appendChild(estadoDiv);
+            const tipoDiv = document.createElement("div"); tipoDiv.className = "form-group";
+            tipoDiv.innerHTML = `<label>Tipo:</label><div class="radio-group" id="radioTipoOD"></div>`;
+            divOpcoes.appendChild(tipoDiv);
+            const radioDiv = document.getElementById("radioTipoOD");
+            Object.keys(od.tipos).forEach(k => { radioDiv.innerHTML += `<label><input type="radio" name="tipoOD" value="${k}" ${k==='erro_abertura'?'checked':''}> ${od.tipos[k].label}</label>`; });
+            document.querySelectorAll("input[name='tipoOD']").forEach(r=>r.addEventListener("change",()=>renderizarCamposOD()));
+            renderizarCamposOD();
+        }
+        else if (tipo === "SP") {
+            const sp = produtos.SP;
+            const tipoInicial = document.querySelector("input[name='tipoSP']:checked")?.value || "importacao";
+            const infoTipo = sp.tipos[tipoInicial];
+            let estadosDisponiveis = sp.estados;
+            let estadoPadrao = "MA";
+            if (infoTipo && infoTipo.estadosPermitidos) {
+                estadosDisponiveis = infoTipo.estadosPermitidos;
+                estadoPadrao = "BA";
+            }
+            const estadoDiv = document.createElement("div"); estadoDiv.className = "form-group";
+            estadoDiv.innerHTML = `<label>Estado:</label><select id="estadoSP">${estadosDisponiveis.map(e=>`<option value="${e}" ${e===estadoPadrao?'selected':''}>${e}</option>`).join('')}</select>`;
+            divOpcoes.appendChild(estadoDiv);
+            const tipoDiv = document.createElement("div"); tipoDiv.className = "form-group";
+            tipoDiv.innerHTML = `<label>Tipo:</label><div class="radio-group" id="radioTipoSP"></div>`;
+            divOpcoes.appendChild(tipoDiv);
+            const radioDiv = document.getElementById("radioTipoSP");
+            Object.keys(sp.tipos).forEach(k => {
+                radioDiv.innerHTML += `<label><input type="radio" name="tipoSP" value="${k}" ${k==='importacao'?'checked':''}> ${sp.tipos[k].label}</label>`;
+            });
+            const radios = document.querySelectorAll("input[name='tipoSP']");
+            radios.forEach(r => r.addEventListener("change", () => {
+                const novoTipo = document.querySelector("input[name='tipoSP']:checked")?.value;
+                const novoTipoInfo = sp.tipos[novoTipo];
+                let novosEstados = sp.estados;
+                let novoPadrao = "MA";
+                if (novoTipoInfo && novoTipoInfo.estadosPermitidos) {
+                    novosEstados = novoTipoInfo.estadosPermitidos;
+                    novoPadrao = "BA";
+                }
+                const selectEstado = document.getElementById("estadoSP");
+                if (selectEstado) {
+                    let valorAtual = selectEstado.value;
+                    if (!novosEstados.includes(valorAtual)) {
+                        valorAtual = novoPadrao;
+                    }
+                    selectEstado.innerHTML = novosEstados.map(e => `<option value="${e}" ${e===valorAtual?'selected':''}>${e}</option>`).join('');
+                    if (!novosEstados.includes(valorAtual)) {
+                        selectEstado.value = novoPadrao;
+                    }
+                }
+                renderizarCamposSP();
+            }));
+            renderizarCamposSP();
+        }
+        else if (tipo === "Antifraude") {
+            const af = produtos.Antifraude;
+            const estadoDiv = document.createElement("div"); estadoDiv.className = "form-group";
+            estadoDiv.innerHTML = `<label>UF:</label><select id="ufAntifraude">${af.estados.map(e=>`<option value="${e}">${e}</option>`).join('')}</select>`;
+            divOpcoes.appendChild(estadoDiv);
+            renderizarCamposAntifraude();
+        }
+    }
+
+    // ========== RENDERIZAÇÃO DOS CAMPOS ==========
+    function renderizarCamposET() {
+        divCampos.innerHTML = "";
+        const tipoErro = document.getElementById("tipoErroET")?.value || "CPF não encontrado";
+        const info = produtos.ET.tiposErro[tipoErro];
+        addCampo("text","produto","Produto","ET",true);
+        addCampo("textarea","situacao","Situação/Dúvida",info.situacao, false, null, null, info.situacao);
+        if(info.erro) addCampo("text","erro","Erro",info.erro, false, null, null, info.erro);
+        addCampo("text","nome","Nome","", false, null, null, "");
+        addCampo("text","cpf","CPF","", false, null, null, "");
+        if(info.extras.includes("pago_abonado")) {
+            addCampo("select","pago_abonado","Situação","", false, [{value:"", text:"--"},{value:"Pago", text:"Pago"},{value:"Abonado", text:"Abonado"},{value:"Pendente", text:"Pendente"}], null, "");
+        }
+        if(info.extras.includes("cfc")) addCampo("text","cfc","CFC","", false, null, null, "");
+        addCampo("text","link","Link do ticket","", false, null, null, "");
+    }
+
+    function renderizarCamposSA() {
+        divCampos.innerHTML = "";
+        const tipo = document.querySelector("input[name='tipoSA']:checked")?.value || "cancelamento";
+        const info = produtos.SuperAula.tipos[tipo];
+        addCampo("text","produto","Produto","SuperAula",true);
+        addCampo("textarea","situacao","Situação/Dúvida",info.situacaoPadrao, false, null, null, info.situacaoPadrao);
+        addCampo("text","link","Link do ticket","", false, null, null, "");
+        info.campos.forEach(c => addCampo("text",c,campoLabel[c]||c,"", false, null, null, ""));
+    }
+
+    function renderizarCamposOD() {
+        divCampos.innerHTML = "";
+        addCampo("text","produto","Produto","OD",true);
+        const tipoOD = document.querySelector("input[name='tipoOD']:checked")?.value || "erro_abertura";
+        const sitPadrao = produtos.OD.tipos[tipoOD].situacaoPadrao;
+        addCampo("textarea","situacao","Situação/Dúvida",sitPadrao, false, null, null, sitPadrao);
+        addCampo("text","cpf","CPF","", false, null, null, "");
+        addCampo("text","data_nasc","DATA NASC.","", false, null, null, "");
+        addCampo("text","cnpj","CNPJ","", false, null, null, "");
+        addCampo("text","link","Link do ticket","", false, null, null, "");
+    }
+
+    function renderizarCamposSP() {
+        divCampos.innerHTML = "";
+        const tipo = document.querySelector("input[name='tipoSP']:checked")?.value || "importacao";
+        const info = produtos.SP.tipos[tipo];
+        addCampo("text","produto","Produto","SP",true);
+        addCampo("textarea","situacao","Situação/Dúvida",info.situacaoPadrao, false, null, null, info.situacaoPadrao);
+        if (tipo === "importacao") {
+            addCampo("text","cpf_renach","CPF / RENACH","", false, null, null, "");
+            addCampo("text","cnpj","CNPJ","", false, null, null, "");
+            addCampo("text","erro","Erro (detalhes)","", false, null, null, "");
+        } else if (tipo === "reprocessamento") {
+            addCampo("text","renach","RENACH","", false, null, null, "");
+            addCampo("text","aula","AULA","", false, null, null, "");
+            addCampo("text","data_cadastro","Data cadastro","", false, null, null, "");
+            addCampo("text","oid","OID","", false, null, null, "");
+        } else if (tipo === "reenvio") {
+            addCampo("text","renach","RENACH","", false, null, null, "");
+            addCampo("text","aula","AULA","", false, null, null, "");
+            addCampo("text","oid","OID","", false, null, null, "");
+        }
+        addCampo("text","link","Link do ticket","", false, null, null, "");
+    }
+
+    function renderizarCamposAntifraude() {
+        divCampos.innerHTML = "";
+        // Nº da aula
+        addCampo("text", "numero_aula", "Nº DA AULA", "Ex: 6466141", false, null, null, "");
+        // Nome do alerta com datalist
+        const datalistId = "alertasList";
+        let datalist = document.getElementById(datalistId);
+        if (!datalist) {
+            datalist = document.createElement("datalist");
+            datalist.id = datalistId;
+            alertasSugestoes.forEach(alerta => {
+                const option = document.createElement("option");
+                option.value = alerta;
+                datalist.appendChild(option);
+            });
+            document.body.appendChild(datalist);
+        }
+        const divAlerta = document.createElement("div");
+        divAlerta.className = "form-group";
+        divAlerta.innerHTML = `<label>NOME DO ALERTA:</label><input type="text" name="nome_alerta" list="${datalistId}" placeholder="Selecione ou digite o alerta" value="">`;
+        divCampos.appendChild(divAlerta);
+        // Análise do suporte com texto padrão "Candidato presente nas imagens"
+        addCampo("textarea", "analise_suporte", "ANÁLISE DO SUPORTE", "Análise do suporte", false, null, null, "Candidato presente nas imagens");
+        // Número do ticket (antes era link)
+        addCampo("text", "numero_ticket", "NÚMERO DO TICKET", "Ex: 123456", false, null, null, "");
+    }
+
+    function getCamposValues() {
+        const inputs = divCampos.querySelectorAll("input, textarea, select");
+        const values = {};
+        inputs.forEach(inp => {
+            const name = inp.name || inp.getAttribute("name");
+            if(name) values[name] = inp.value;
+        });
+        return values;
+    }
+
+    function bold(label) { return `*${label}*`; }
+
+    // ========== GERAÇÃO DA MENSAGEM ==========
+    function gerarMensagem() {
+        const tipo = document.getElementById("produtoSelect")?.value;
+        if (!tipo) return;
+        const valores = getCamposValues();
+        let mensagem = "";
+
+        if (tipo === "ET") {
+            const estado = document.getElementById("estadoET")?.value || "PB";
+            const tipoErro = document.getElementById("tipoErroET")?.value || "CPF não encontrado";
+            const info = produtos.ET.tiposErro[tipoErro];
+            let situacao = valores.situacao || info.situacao;
+            let erro = valores.erro || info.erro || "";
+            let admin = info.admin_gestor ? "\n\nADMIN -> LIBERADO\nGESTOR -> AUDITORIA" : "";
+            let linhaErro = erro ? `\n\nERRO: ${erro}` : "";
+            let dados = [];
+            if (valores.nome) dados.push(`${bold("NOME:")} ${valores.nome}`);
+            if (valores.cpf) dados.push(`${bold("CPF:")} ${valores.cpf}`);
+            if (valores.cfc) dados.push(`${bold("CFC:")} ${valores.cfc}`);
+            if (valores.pago_abonado && valores.pago_abonado !== "") dados.push(`${bold("SITUAÇÃO:")} ${valores.pago_abonado}`);
+            let dadosStr = dados.join("\n");
+            mensagem = `${bold("#AjudaN2")}\n\n📍${bold("ESTADO:")} ${estado}\n📦${bold("PRODUTO:")} ET\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${situacao}${linhaErro}${admin}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n\n${dadosStr}\n\n🔗 ${bold("LINK DO TICKET:")} ${valores.link || ""}`;
+        }
+        else if (tipo === "SuperAula") {
+            const estado = document.getElementById("estadoSA")?.value || "PB";
+            const sub = document.querySelector("input[name='tipoSA']:checked")?.value || "cancelamento";
+            const sit = valores.situacao || "";
+            const link = valores.link || "";
+            if (sub === "cancelamento") {
+                let dados = [];
+                if (valores.nome) dados.push(`${bold("ALUNO:")} ${valores.nome}`);
+                if (valores.renach) dados.push(`${bold("RENACH:")} ${valores.renach}`);
+                if (valores.num_pagamento) dados.push(`${bold("NÚMERO DE PAGAMENTO:")} ${valores.num_pagamento}`);
+                if (valores.cpf) dados.push(`${bold("CPF:")} ${valores.cpf}`);
+                let dadosStr = dados.join("\n");
+                mensagem = `${bold("#AjudaN2")}\n\n${bold("ESTADO:")} ${estado}\n${bold("PRODUTO:")} SuperAula\n\n🔎 ${bold("SOLICITAÇÃO:")} ${sit}\n\n📌 ${bold("DADOS DO CANDIDATO:")}\n${dadosStr}\n\n📌 ${bold("MOTIVO DA SOLICITAÇÃO:")} gerar um novo boleto\n🎫 ${bold("TICKET:")} ${link}`;
+            } else if (sub === "validade") {
+                let dados = [];
+                if (valores.cpf) dados.push(`${bold("CPF:")} ${valores.cpf}`);
+                if (valores.cnpj) dados.push(`${bold("CNPJ:")} ${valores.cnpj}`);
+                let dadosStr = dados.join("\n");
+                mensagem = `${bold("#AjudaN2")}\n\n${bold("ESTADO:")} ${estado}\n${bold("PRODUTO:")} SuperAula\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n${dadosStr}\n${bold("TICKET:")} ${link}`;
+            } else {
+                let dados = [];
+                if (valores.nome) dados.push(`${bold("NOME:")} ${valores.nome}`);
+                if (valores.cpf) dados.push(`${bold("CPF:")} ${valores.cpf}`);
+                let dadosStr = dados.join("\n");
+                mensagem = `${bold("#AjudaN2")}\n\n${bold("ESTADO:")} ${estado}\n${bold("PRODUTO:")} SuperAula\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n\n${dadosStr}\n${bold("TICKET:")} ${link}`;
+            }
+        }
+        else if (tipo === "OD") {
+            const estado = "PE";
+            const sit = valores.situacao || "";
+            let dados = [];
+            if (valores.cpf) dados.push(`${bold("CPF:")} ${valores.cpf}`);
+            if (valores.data_nasc) dados.push(`${bold("DATA NASC.:")} ${valores.data_nasc}`);
+            if (valores.cnpj) dados.push(`${bold("CNPJ:")} ${valores.cnpj}`);
+            let dadosStr = dados.join("\n");
+            mensagem = `${bold("#AjudaN2")}\n\n📍${bold("ESTADO:")} ${estado}\n📦${bold("PRODUTO:")} OD\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n\n${dadosStr}\n\n🔗 ${bold("LINK DO TICKET:")} ${valores.link || ""}`;
+        }
+        else if (tipo === "SP") {
+            const estado = document.getElementById("estadoSP")?.value || "PB";
+            const sub = document.querySelector("input[name='tipoSP']:checked")?.value || "importacao";
+            const sit = valores.situacao || "";
+            const link = valores.link || "";
+            let dados = [];
+            if (sub === "importacao") {
+                if (valores.cpf_renach) dados.push(`${bold("CPF / RENACH:")} ${valores.cpf_renach}`);
+                if (valores.cnpj) dados.push(`${bold("CNPJ:")} ${valores.cnpj}`);
+                if (valores.erro) dados.push(`${bold("ERRO:")} ${valores.erro}`);
+            } else if (sub === "reprocessamento") {
+                if (valores.renach) dados.push(`${bold("RENACH:")} ${valores.renach}`);
+                if (valores.aula) dados.push(`${bold("AULA:")} ${valores.aula}`);
+                if (valores.data_cadastro) dados.push(`${bold("DATA CADASTRO:")} ${valores.data_cadastro}`);
+                if (valores.oid) dados.push(`${bold("OID:")} ${valores.oid}`);
+            } else if (sub === "reenvio") {
+                if (valores.renach) dados.push(`${bold("RENACH:")} ${valores.renach}`);
+                if (valores.aula) dados.push(`${bold("AULA:")} ${valores.aula}`);
+                if (valores.oid) dados.push(`${bold("OID:")} ${valores.oid}`);
+            }
+            let dadosStr = dados.length ? dados.join("\n") : "";
+            mensagem = `${bold("#AjudaN2")}\n\n📍${bold("ESTADO:")} ${estado}\n📦${bold("PRODUTO:")} SP\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n${dadosStr ? `\n${dadosStr}\n` : ""}\n🔗 ${bold("LINK DO TICKET:")} ${link}`;
+            mensagem = mensagem.replace(/\n\s*\n\s*\n/g, '\n\n');
+        }
+        else if (tipo === "Antifraude") {
+            const uf = document.getElementById("ufAntifraude")?.value || "";
+            const numeroAula = (valores.numero_aula || "").trim();
+            const nomeAlerta = (valores.nome_alerta || "").trim();
+            const analise = (valores.analise_suporte || "").trim();
+            const numeroTicket = (valores.numero_ticket || "").trim();
+
+            let msg = `${bold("#AjudaAntifraude")}`;
+            msg += `\n\n${bold("UF:")} ${uf}`;
+            if (numeroAula !== "") msg += `\n${bold("Nº DA AULA:")} ${numeroAula}`;
+            if (nomeAlerta !== "") msg += `\n${bold("NOME DO ALERTA:")} ${nomeAlerta}`;
+            if (analise !== "") msg += `\n${bold("ANÁLISE DO SUPORTE:")} ${analise}`;
+            if (numeroTicket !== "") msg += `\n${bold("NÚMERO DO TICKET:")} ${numeroTicket}`;
+            mensagem = msg;
+        }
+
+        mensagem = mensagem.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+        textResultado.value = mensagem.trim();
+    }
+
+    function copiarTexto() {
+        const texto = textResultado.value;
+        if (!texto.trim()) { showToast("⚠️ Sem mensagem"); return; }
+        navigator.clipboard.writeText(texto).then(() => showToast("📋 Copiado!")).catch(() => showToast("❌ Erro"));
+    }
+
+    renderizarPagina();
+    btnGerar.addEventListener("click", gerarMensagem);
+    btnLimpar.addEventListener("click", limparCampos);
+    btnCopiar.addEventListener("click", copiarTexto);
+</script>
+</body>
+</html>
