@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>📋 Gerador #AjudaN2 - OD e Antifraude com textos fixos editáveis</title>
+    <title>📋 Gerador #AjudaN2 - Completo com OD multi candidatos</title>
     <style>
         * {
             box-sizing: border-box;
@@ -188,7 +188,7 @@
 <div class="app-container">
     <div class="header">
         <h1>📋 Gerador #AjudaN2 - Google Chat</h1>
-        <p>OD e Antifraude com textos padrão editáveis</p>
+        <p>Suporte a múltiplos CPFs no OD | Antifraude com análise padrão</p>
     </div>
 
     <div class="form-panel">
@@ -235,7 +235,7 @@
             estadoFixo: "PE",
             tipos: {
                 erro_abertura: { label: "Erro na abertura do Renach", situacaoPadrao: "Não foi possível validar documento de identificação.\n\nErro: Não foi detectado um grau de semelhança confiável entre as biometrias faciais recebidas.\n\nComo proceder?" },
-                consulta: { label: "Consulta de situação", situacaoPadrao: "Poderiam verificar a situação do aluno?" }  // texto fixo editável
+                consulta: { label: "Consulta de situação", situacaoPadrao: "Poderiam verificar a situação do aluno?" }
             },
             campos: ["cpf","data_nasc","cnpj"]
         },
@@ -296,7 +296,6 @@
         showToast("🧹 Campos preenchidos foram limpos");
     }
 
-    // Função addCampo com defaultValue
     function addCampo(type, name, label, placeholder, readonly = false, options = null, datalistId = null, defaultValue = "") {
         const div = document.createElement("div");
         div.className = "form-group";
@@ -381,7 +380,7 @@
             tipoDiv.innerHTML = `<label>Tipo:</label><div class="radio-group" id="radioTipoOD"></div>`;
             divOpcoes.appendChild(tipoDiv);
             const radioDiv = document.getElementById("radioTipoOD");
-            Object.keys(od.tipos).forEach(k => { radioDiv.innerHTML += `<label><input type="radio" name="tipoOD" value="${k}" ${k==='erro_abertura'?'checked':''}> ${od.tipos[k].label}</label>`; });
+            Object.keys(od.tipos).forEach(k => { radioDiv.innerHTML += `<label><input type="radio" name="tipoOD" value="${k}" ${k==='consulta'?'checked':''}> ${od.tipos[k].label}</label>`; });
             document.querySelectorAll("input[name='tipoOD']").forEach(r=>r.addEventListener("change",()=>renderizarCamposOD()));
             renderizarCamposOD();
         }
@@ -469,13 +468,51 @@
     function renderizarCamposOD() {
         divCampos.innerHTML = "";
         addCampo("text","produto","Produto","OD",true);
-        const tipoOD = document.querySelector("input[name='tipoOD']:checked")?.value || "erro_abertura";
+        // Tipo de situação (selecionado via radio, mas vamos usar o texto fixo "consulta" padrão)
+        const tipoOD = document.querySelector("input[name='tipoOD']:checked")?.value || "consulta";
         const sitPadrao = produtos.OD.tipos[tipoOD].situacaoPadrao;
         addCampo("textarea","situacao","Situação/Dúvida",sitPadrao, false, null, null, sitPadrao);
-        addCampo("text","cpf","CPF","", false, null, null, "");
-        addCampo("text","data_nasc","DATA NASC.","", false, null, null, "");
-        addCampo("text","cnpj","CNPJ","", false, null, null, "");
-        addCampo("text","link","Link do ticket","", false, null, null, "");
+        
+        // Checkbox para modo múltiplo
+        const divModo = document.createElement("div");
+        divModo.className = "form-group";
+        divModo.innerHTML = `<label><input type="checkbox" id="modoMultiploOD"> Múltiplos candidatos (listar vários CPFs)</label>`;
+        divCampos.appendChild(divModo);
+        
+        // Modo simples (um CPF)
+        const divSimples = document.createElement("div");
+        divSimples.id = "odSimples";
+        divSimples.innerHTML = `
+            <div class="form-group"><label>CPF:</label><input type="text" name="cpf_simples" placeholder="CPF do candidato"></div>
+            <div class="form-group"><label>DATA NASC.:</label><input type="text" name="data_nasc_simples" placeholder="dd/mm/aaaa"></div>
+        `;
+        divCampos.appendChild(divSimples);
+        
+        // Modo múltiplo (text area)
+        const divMultiplo = document.createElement("div");
+        divMultiplo.id = "odMultiplo";
+        divMultiplo.style.display = "none";
+        divMultiplo.innerHTML = `
+            <div class="form-group"><label>Lista de CPFs e datas (um por linha, separados por vírgula ou espaço):</label>
+            <textarea name="lista_candidatos" rows="6" placeholder="Exemplo:
+137.346.704-54, 29/02/2004
+116.239.944-97, 01/03/2007"></textarea></div>
+        `;
+        divCampos.appendChild(divMultiplo);
+        
+        // CNPJ (fixo mas editável)
+        addCampo("text", "cnpj", "CNPJ", "10.679.038.0001/96", false);
+        // Link do ticket
+        addCampo("text", "link", "Link do ticket", "", false);
+        
+        const chk = document.getElementById("modoMultiploOD");
+        if (chk) {
+            chk.addEventListener("change", (e) => {
+                const isMulti = e.target.checked;
+                divSimples.style.display = isMulti ? "none" : "block";
+                divMultiplo.style.display = isMulti ? "block" : "none";
+            });
+        }
     }
 
     function renderizarCamposSP() {
@@ -503,9 +540,7 @@
 
     function renderizarCamposAntifraude() {
         divCampos.innerHTML = "";
-        // Nº da aula
         addCampo("text", "numero_aula", "Nº DA AULA", "Ex: 6466141", false, null, null, "");
-        // Nome do alerta com datalist
         const datalistId = "alertasList";
         let datalist = document.getElementById(datalistId);
         if (!datalist) {
@@ -522,9 +557,7 @@
         divAlerta.className = "form-group";
         divAlerta.innerHTML = `<label>NOME DO ALERTA:</label><input type="text" name="nome_alerta" list="${datalistId}" placeholder="Selecione ou digite o alerta" value="">`;
         divCampos.appendChild(divAlerta);
-        // Análise do suporte com texto padrão "Candidato presente nas imagens"
         addCampo("textarea", "analise_suporte", "ANÁLISE DO SUPORTE", "Análise do suporte", false, null, null, "Candidato presente nas imagens");
-        // Número do ticket (antes era link)
         addCampo("text", "numero_ticket", "NÚMERO DO TICKET", "Ex: 123456", false, null, null, "");
     }
 
@@ -592,13 +625,50 @@
         }
         else if (tipo === "OD") {
             const estado = "PE";
-            const sit = valores.situacao || "";
-            let dados = [];
-            if (valores.cpf) dados.push(`${bold("CPF:")} ${valores.cpf}`);
-            if (valores.data_nasc) dados.push(`${bold("DATA NASC.:")} ${valores.data_nasc}`);
-            if (valores.cnpj) dados.push(`${bold("CNPJ:")} ${valores.cnpj}`);
-            let dadosStr = dados.join("\n");
-            mensagem = `${bold("#AjudaN2")}\n\n📍${bold("ESTADO:")} ${estado}\n📦${bold("PRODUTO:")} OD\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n\n${dadosStr}\n\n🔗 ${bold("LINK DO TICKET:")} ${valores.link || ""}`;
+            const modoMulti = document.getElementById("modoMultiploOD")?.checked || false;
+            const link = valores.link || "";
+            const cnpj = valores.cnpj || "10.679.038.0001/96";
+            const sit = valores.situacao || "Poderiam verificar a situação do aluno?";
+            
+            if (!modoMulti) {
+                // Modo simples: um candidato
+                const cpf = valores.cpf_simples || "";
+                const dataNasc = valores.data_nasc_simples || "";
+                let dadosStr = "";
+                if (cpf) dadosStr += `${bold("CPF:")} ${cpf}\n`;
+                if (dataNasc) dadosStr += `${bold("DATA NASC.:")} ${dataNasc}\n`;
+                if (cnpj) dadosStr += `${bold("CNPJ:")} ${cnpj}`;
+                mensagem = `${bold("#AjudaN2")}\n\n📍${bold("ESTADO:")} ${estado}\n📦${bold("PRODUTO:")} OD\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n\n${dadosStr}\n\n🔗 ${bold("LINK DO TICKET:")} ${link}`;
+            } else {
+                // Modo múltiplo: processar lista
+                const listaRaw = valores.lista_candidatos || "";
+                const linhas = listaRaw.split(/\r?\n/);
+                let candidatos = [];
+                for (let linha of linhas) {
+                    linha = linha.trim();
+                    if (linha === "") continue;
+                    // Separar por vírgula ou espaço? Tentar vírgula primeiro
+                    let partes = linha.split(",");
+                    if (partes.length === 1) {
+                        partes = linha.split(/\s+/);
+                    }
+                    if (partes.length >= 2) {
+                        let cpf = partes[0].trim();
+                        let data = partes[1].trim();
+                        candidatos.push({ cpf, data });
+                    }
+                }
+                if (candidatos.length === 0) {
+                    mensagem = "Nenhum candidato válido na lista.";
+                } else {
+                    let listaStr = "";
+                    for (let cand of candidatos) {
+                        listaStr += `${bold("CPF:")} ${cand.cpf}\n${bold("DATA NASC.:")} ${cand.data}\n\n`;
+                    }
+                    listaStr = listaStr.replace(/\n\n$/, "\n");
+                    mensagem = `${bold("#AjudaN2")}\n\n📍${bold("ESTADO:")} ${estado}\n📦${bold("PRODUTO:")} OD\n\n🔎 ${bold("SITUAÇÃO/DÚVIDA:")} ${sit}\n\n📌 ${bold("DADOS PARA CONSULTA E ANÁLISE:")}\n\n${listaStr}${bold("CNPJ:")} ${cnpj}\n\n🔗 ${bold("LINK DO TICKET:")} ${link}`;
+                }
+            }
         }
         else if (tipo === "SP") {
             const estado = document.getElementById("estadoSP")?.value || "PB";
